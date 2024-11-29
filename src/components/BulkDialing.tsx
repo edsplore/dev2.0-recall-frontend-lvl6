@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { X, BarChart2, PieChart, Copy } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { X, BarChart2, PieChart, Copy } from "lucide-react";
 import {
   getCampaign,
   getContacts,
@@ -12,8 +12,8 @@ import {
   Campaign,
   Contact,
   CallLog,
-} from '../utils/db';
-import { supabase } from '../utils/supabaseClient';
+} from "../utils/db";
+import { supabase } from "../utils/supabaseClient";
 
 // Interface definitions
 interface ConcurrencyStatus {
@@ -52,9 +52,9 @@ const ContactsPopup: React.FC<ContactsPopupProps> = ({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [setShowContactsPopup]);
 
@@ -100,8 +100,8 @@ const BulkDialing: React.FC = () => {
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [dialingStatus, setDialingStatus] = useState<
-    'idle' | 'dialing' | 'paused' | 'completed'
-  >('idle');
+    "idle" | "dialing" | "paused" | "completed"
+  >("idle");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
@@ -122,31 +122,31 @@ const BulkDialing: React.FC = () => {
       try {
         // Get the API key from user_dialing_credits
         const { data, error } = await supabase
-          .from('user_dialing_credits')
-          .select('retell_api_key')
-          .eq('userId', userId)
+          .from("user_dialing_credits")
+          .select("retell_api_key")
+          .eq("userId", userId)
           .single();
 
         if (error || !data?.retell_api_key) {
-          console.error('Error fetching Retell API key:', error);
+          console.error("Error fetching Retell API key:", error);
           return null;
         }
 
         const response = await axios.get(
-          'https://api.retellai.com/get-concurrency',
+          "https://api.retellai.com/get-concurrency",
           {
             headers: {
               Authorization: `Bearer ${data.retell_api_key}`,
             },
-          }
+          },
         );
         return response.data;
       } catch (error) {
-        console.error('Error fetching concurrency status:', error);
+        console.error("Error fetching concurrency status:", error);
         return null;
       }
     },
-    []
+    [],
   );
 
   const stopPolling = useCallback(() => {
@@ -171,13 +171,13 @@ const BulkDialing: React.FC = () => {
             setCampaign(updatedCampaign);
             setProgress(updatedCampaign.progress);
 
-            if (updatedCampaign.status === 'Completed') {
-              setDialingStatus('completed');
+            if (updatedCampaign.status === "Completed") {
+              setDialingStatus("completed");
               stopPolling();
             }
           }
         } catch (error) {
-          console.error('Error fetching campaign progress:', error);
+          console.error("Error fetching campaign progress:", error);
         }
       }
     }, 2000);
@@ -228,7 +228,7 @@ const BulkDialing: React.FC = () => {
           setUserCredits(credits);
         }
       } catch (error) {
-        console.error('Error fetching user credits:', error);
+        console.error("Error fetching user credits:", error);
       }
     };
 
@@ -243,7 +243,7 @@ const BulkDialing: React.FC = () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      if (!user) throw new Error("User not authenticated");
 
       // // Get successful call IDs
       // const successfulCallIds = new Set(
@@ -264,34 +264,34 @@ const BulkDialing: React.FC = () => {
 
       // Get successful call logs
       const successfulCallLogs = callLogs.filter((log) =>
-        ['agent_hangup', 'user_hangup', 'call_transfer'].includes(
-          log.disconnection_reason
-        )
+        ["agent_hangup", "user_hangup", "call_transfer"].includes(
+          log.disconnection_reason,
+        ),
       );
 
       // Create a Set of contact IDs that had successful calls
       const successfulContactIds = new Set(
-        successfulCallLogs.map((log) => log.contactId)
+        successfulCallLogs.map((log) => log.contactId),
       );
 
       // Filter contacts that don't have successful calls
       const contactsToRedial = contacts.filter(
-        (contact) => !successfulContactIds.has(contact.id!)
+        (contact) => !successfulContactIds.has(contact.id!),
       );
 
       if (contactsToRedial.length === 0) {
-        alert('No failed contacts to redial.');
+        alert("No failed contacts to redial.");
         setIsRedialLoading(false);
         return;
       }
 
       // Create new campaign with localTouchEnabled copied from original campaign
-      const newCampaign: Omit<Campaign, 'id'> = {
+      const newCampaign: Omit<Campaign, "id"> = {
         title: `${campaign.title} (Redial)`,
         description: campaign.description,
         agentId: campaign.agentId,
         outboundNumber: campaign.outboundNumber,
-        status: 'Scheduled',
+        status: "Scheduled",
         progress: 0,
         hasRun: false,
         userId: user.id,
@@ -308,14 +308,14 @@ const BulkDialing: React.FC = () => {
           firstName: contact.firstName,
           campaignId: newCampaignId,
           dynamicVariables: contact.dynamicVariables,
-        }))
+        })),
       );
 
       // Navigate to new campaign
       navigate(`/campaign/${newCampaignId}`);
     } catch (error) {
-      console.error('Error creating redial campaign:', error);
-      setError('Failed to create redial campaign');
+      console.error("Error creating redial campaign:", error);
+      setError("Failed to create redial campaign");
     } finally {
       setIsRedialLoading(false);
     }
@@ -323,11 +323,11 @@ const BulkDialing: React.FC = () => {
 
   const startBulkDialing = useCallback(async () => {
     if (!campaign || !contacts.length) return;
-    if (campaign.hasRun && campaign.status === 'Completed') {
-      alert('This campaign has already been run and cannot be run again.');
+    if (campaign.hasRun && campaign.status === "Completed") {
+      alert("This campaign has already been run and cannot be run again.");
       return;
     }
-    setDialingStatus('dialing');
+    setDialingStatus("dialing");
     console.log(`Starting bulk dialing for ${contacts.length} contacts`);
 
     try {
@@ -335,29 +335,29 @@ const BulkDialing: React.FC = () => {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        throw new Error('User not authenticated');
+        throw new Error("User not authenticated");
       }
 
       const response = await axios.post(
-        'https://1718c2e2-bb7f-4742-9f8c-aa25aae8b08a-00-y2j97vfi0dja.sisko.replit.dev/api/start-bulk-dialing',
+        "https://recall-backend.replit.app/api/start-bulk-dialing",
         {
           campaignId: campaign.id,
           userId: user.id,
-        }
+        },
       );
 
       if (response.data.success) {
         startPolling();
       } else {
-        throw new Error(response.data.error || 'Bulk dialing failed');
+        throw new Error(response.data.error || "Bulk dialing failed");
       }
     } catch (error) {
-      console.error('Error during bulk dialing:', error);
-      setDialingStatus('idle');
+      console.error("Error during bulk dialing:", error);
+      setDialingStatus("idle");
       if (error.response && error.response.status === 402) {
         setPurchaseLink(error.response.data.purchaseLink);
       } else {
-        alert('An error occurred during bulk dialing. Please try again.');
+        alert("An error occurred during bulk dialing. Please try again.");
       }
     }
   }, [campaign, contacts, startPolling]);
@@ -365,34 +365,34 @@ const BulkDialing: React.FC = () => {
   const pauseOrResumeCampaign = useCallback(async () => {
     if (!campaign) return;
 
-    const newStatus = campaign.status === 'Paused' ? 'In Progress' : 'Paused';
+    const newStatus = campaign.status === "Paused" ? "In Progress" : "Paused";
 
     try {
       const response = await axios.post(
-        'https://1718c2e2-bb7f-4742-9f8c-aa25aae8b08a-00-y2j97vfi0dja.sisko.replit.dev/api/update-campaign-status',
+        "https://recall-backend.replit.app/api/update-campaign-status",
         {
           campaignId: campaign.id,
           status: newStatus,
-        }
+        },
       );
 
       if (response.data.success) {
         setCampaign((prevCampaign) =>
-          prevCampaign ? { ...prevCampaign, status: newStatus } : prevCampaign
+          prevCampaign ? { ...prevCampaign, status: newStatus } : prevCampaign,
         );
-        if (newStatus === 'Paused') {
-          setDialingStatus('paused');
+        if (newStatus === "Paused") {
+          setDialingStatus("paused");
         } else {
-          setDialingStatus('dialing');
+          setDialingStatus("dialing");
         }
       } else {
         throw new Error(
-          response.data.error || 'Failed to update campaign status'
+          response.data.error || "Failed to update campaign status",
         );
       }
     } catch (error) {
-      console.error('Error updating campaign status:', error);
-      alert('An error occurred while updating the campaign status.');
+      console.error("Error updating campaign status:", error);
+      alert("An error occurred while updating the campaign status.");
     }
   }, [campaign]);
 
@@ -416,17 +416,17 @@ const BulkDialing: React.FC = () => {
 
             // Set dialing status based on campaign status and hasRun flag
             if (campaignData.hasRun) {
-              if (campaignData.status === 'In Progress') {
-                setDialingStatus('dialing');
+              if (campaignData.status === "In Progress") {
+                setDialingStatus("dialing");
                 startPolling();
-              } else if (campaignData.status === 'Paused') {
-                setDialingStatus('paused');
-              } else if (campaignData.status === 'Completed') {
-                setDialingStatus('completed');
+              } else if (campaignData.status === "Paused") {
+                setDialingStatus("paused");
+              } else if (campaignData.status === "Completed") {
+                setDialingStatus("completed");
               }
             } else {
               // Campaign hasn't run yet, show start button
-              setDialingStatus('idle');
+              setDialingStatus("idle");
             }
 
             // Set user credits
@@ -437,14 +437,14 @@ const BulkDialing: React.FC = () => {
 
             // Set hasAnalyzed based on call logs
             setHasAnalyzed(
-              callLogsData.some((log) => log.disconnection_reason)
+              callLogsData.some((log) => log.disconnection_reason),
             );
           } else {
-            setError('Campaign not found');
+            setError("Campaign not found");
           }
         } catch (err) {
-          setError('Error loading campaign data');
-          console.error('Error loading campaign data:', err);
+          setError("Error loading campaign data");
+          console.error("Error loading campaign data:", err);
         }
       }
     };
@@ -460,26 +460,26 @@ const BulkDialing: React.FC = () => {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        throw new Error('User not authenticated');
+        throw new Error("User not authenticated");
       }
 
       const response = await axios.post(
-        'https://1718c2e2-bb7f-4742-9f8c-aa25aae8b08a-00-y2j97vfi0dja.sisko.replit.dev/api/analyze-call-logs',
+        "https://recall-backend.replit.app/api/analyze-call-logs",
         {
           campaignId: campaign.id,
           userId: user.id,
-        }
+        },
       );
 
       if (response.data.success) {
         setCallLogs(response.data.callLogs);
         setHasAnalyzed(true);
       } else {
-        throw new Error(response.data.error || 'Call log analysis failed');
+        throw new Error(response.data.error || "Call log analysis failed");
       }
     } catch (error) {
-      console.error('Error during call log analysis:', error);
-      alert('An error occurred during call log analysis. Please try again.');
+      console.error("Error during call log analysis:", error);
+      alert("An error occurred during call log analysis. Please try again.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -518,11 +518,11 @@ const BulkDialing: React.FC = () => {
             </div>
           )}
           <p className="mb-2">
-            Available Credits:{' '}
-            {userCredits !== null ? userCredits : 'Loading...'}
+            Available Credits:{" "}
+            {userCredits !== null ? userCredits : "Loading..."}
           </p>
           <div className="flex space-x-4 mb-4">
-            {dialingStatus === 'idle' && !campaign.hasRun && (
+            {dialingStatus === "idle" && !campaign.hasRun && (
               <button
                 onClick={startBulkDialing}
                 className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
@@ -530,12 +530,12 @@ const BulkDialing: React.FC = () => {
                 Start Bulk Dialing
               </button>
             )}
-            {(dialingStatus === 'dialing' || dialingStatus === 'paused') && (
+            {(dialingStatus === "dialing" || dialingStatus === "paused") && (
               <button
                 onClick={pauseOrResumeCampaign}
                 className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
               >
-                {dialingStatus === 'paused' ? 'Resume' : 'Pause'}
+                {dialingStatus === "paused" ? "Resume" : "Pause"}
               </button>
             )}
             <button
@@ -558,7 +558,7 @@ const BulkDialing: React.FC = () => {
                 className="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded flex items-center disabled:opacity-50"
               >
                 <Copy size={20} className="mr-2" />
-                {isRedialLoading ? 'Creating...' : 'Redial Failed Contacts'}
+                {isRedialLoading ? "Creating..." : "Redial Failed Contacts"}
               </button>
             )}
           </div>
@@ -577,7 +577,7 @@ const BulkDialing: React.FC = () => {
               </a>
             </div>
           )}
-          {campaign.hasRun && campaign.status === 'Completed' && (
+          {campaign.hasRun && campaign.status === "Completed" && (
             <p className="text-yellow-600 mb-4">
               This campaign has already been run and cannot be run again.
             </p>
@@ -591,7 +591,7 @@ const BulkDialing: React.FC = () => {
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center"
             >
               <BarChart2 size={20} className="mr-2" />
-              {isAnalyzing ? 'Analyzing...' : 'Analyze Calls'}
+              {isAnalyzing ? "Analyzing..." : "Analyze Calls"}
             </button>
           </div>
           <div className="overflow-x-auto max-h-96 overflow-y-auto">
@@ -609,7 +609,7 @@ const BulkDialing: React.FC = () => {
                   <tr
                     key={log.id || index}
                     className={`${
-                      index % 2 === 0 ? 'bg-gray-100' : 'bg-white'
+                      index % 2 === 0 ? "bg-gray-100" : "bg-white"
                     } cursor-pointer hover:bg-gray-200`}
                     onClick={() => handleCallLogClick(log)}
                   >
@@ -617,7 +617,7 @@ const BulkDialing: React.FC = () => {
                     <td className="border px-4 py-2">{log.firstName}</td>
                     <td className="border px-4 py-2">{log.callId}</td>
                     <td className="border px-4 py-2">
-                      {log.disconnection_reason || 'N/A'}
+                      {log.disconnection_reason || "N/A"}
                     </td>
                   </tr>
                 ))}
@@ -644,22 +644,22 @@ const BulkDialing: React.FC = () => {
                   <strong>Call ID:</strong> {selectedCallLog.callId}
                 </p>
                 <p>
-                  <strong>Disconnection Reason:</strong>{' '}
-                  {selectedCallLog.disconnection_reason || 'N/A'}
+                  <strong>Disconnection Reason:</strong>{" "}
+                  {selectedCallLog.disconnection_reason || "N/A"}
                 </p>
                 <p>
-                  <strong>Start Time:</strong>{' '}
-                  {selectedCallLog.start_time || 'N/A'}
+                  <strong>Start Time:</strong>{" "}
+                  {selectedCallLog.start_time || "N/A"}
                 </p>
                 <h3 className="text-xl font-semibold mt-4 mb-2">
                   Call Summary
                 </h3>
-                <p>{selectedCallLog.call_summary || 'No summary available'}</p>
+                <p>{selectedCallLog.call_summary || "No summary available"}</p>
                 <h3 className="text-xl font-semibold mt-4 mb-2">
                   Call Transcript
                 </h3>
                 <pre className="whitespace-pre-wrap bg-gray-100 p-4 rounded">
-                  {selectedCallLog.call_transcript || 'No transcript available'}
+                  {selectedCallLog.call_transcript || "No transcript available"}
                 </pre>
                 {selectedCallLog.call_recording && (
                   <div className="mt-4">
